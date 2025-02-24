@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
   Rocket,
   Code2,
@@ -16,9 +18,16 @@ import {
   Sparkles,
   ArrowRight,
   CheckCircle2,
+  Star,
+  Clock,
+  Users,
+  Zap,
+  Download,
+  Activity,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 
+// Types and Interfaces
 interface Tool {
   id: string;
   name: string;
@@ -26,8 +35,38 @@ interface Tool {
   icon: React.ReactNode;
   category: string;
   popularity: number;
+  downloads: number;
+  lastUpdate: string;
 }
 
+interface StatisticProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+}
+
+interface FeatureHighlightProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
+
+interface InstallButtonProps {
+  isInstalling: boolean;
+  progress: number;
+  onClick: () => void;
+}
+
+interface SearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+interface ToolCardProps {
+  tool: Tool;
+}
+
+// Mock Data
 const tools: Tool[] = [
   {
     id: "terminal",
@@ -36,6 +75,8 @@ const tools: Tool[] = [
     icon: <Terminal className="w-6 h-6" />,
     category: "core",
     popularity: 98,
+    downloads: 50000,
+    lastUpdate: "2024-01-15",
   },
   {
     id: "debugger",
@@ -44,6 +85,8 @@ const tools: Tool[] = [
     icon: <Boxes className="w-6 h-6" />,
     category: "debug",
     popularity: 92,
+    downloads: 35000,
+    lastUpdate: "2024-01-10",
   },
   {
     id: "git",
@@ -52,6 +95,8 @@ const tools: Tool[] = [
     icon: <GitBranch className="w-6 h-6" />,
     category: "core",
     popularity: 95,
+    downloads: 45000,
+    lastUpdate: "2024-01-12",
   },
   {
     id: "compiler",
@@ -60,6 +105,8 @@ const tools: Tool[] = [
     icon: <Cpu className="w-6 h-6" />,
     category: "build",
     popularity: 88,
+    downloads: 30000,
+    lastUpdate: "2024-01-08",
   },
   {
     id: "syntax",
@@ -68,6 +115,8 @@ const tools: Tool[] = [
     icon: <Braces className="w-6 h-6" />,
     category: "debug",
     popularity: 90,
+    downloads: 40000,
+    lastUpdate: "2024-01-14",
   },
   {
     id: "ai",
@@ -76,9 +125,97 @@ const tools: Tool[] = [
     icon: <Sparkles className="w-6 h-6" />,
     category: "build",
     popularity: 94,
+    downloads: 48000,
+    lastUpdate: "2024-01-13",
   },
 ];
 
+// Memoized Components
+const Statistic = memo(({ icon, label, value }: StatisticProps) => (
+  <div className="flex items-center space-x-2">
+    <div className="p-2 bg-primary/10 rounded-full">{icon}</div>
+    <div>
+      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-sm text-muted-foreground">{label}</div>
+    </div>
+  </div>
+));
+
+const FeatureHighlight = memo(({ icon, title, description }: FeatureHighlightProps) => (
+  <div className="flex items-start space-x-3 p-4 rounded-lg bg-card">
+    <div className="p-2 bg-primary/10 rounded-full">{icon}</div>
+    <div>
+      <h3 className="font-semibold">{title}</h3>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
+  </div>
+));
+
+const InstallButton = memo(({ isInstalling, progress, onClick }: InstallButtonProps) => (
+  <Button size="lg" onClick={onClick} disabled={isInstalling}>
+    {isInstalling ? (
+      <>
+        Installing...
+        <Progress value={progress} className="w-20 ml-2" />
+      </>
+    ) : (
+      <>
+        Quick Install
+        <ArrowRight className="ml-2 w-4 h-4" />
+      </>
+    )}
+  </Button>
+));
+
+const SearchBar = memo(({ value, onChange }: SearchBarProps) => (
+  <div className="relative">
+    <Input
+      id="search-input"
+      placeholder="Search tools... (⌘ + /)"
+      className="max-w-sm"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+    <kbd className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+      <span className="text-xs">⌘</span>K
+    </kbd>
+  </div>
+));
+
+const ToolCard = memo(({ tool }: ToolCardProps) => (
+  <Card className="p-6 hover:shadow-lg transition-shadow">
+    <div className="flex items-start justify-between mb-4">
+      <div className="p-2 bg-primary/10 rounded-lg">
+        {tool.icon}
+      </div>
+      <Badge variant="secondary">
+        {tool.popularity}% Popular
+      </Badge>
+    </div>
+    
+    <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
+    <p className="text-muted-foreground mb-4">{tool.description}</p>
+    
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex items-center">
+          <Download className="w-4 h-4 mr-1" />
+          {tool.downloads.toLocaleString()} downloads
+        </div>
+        <div className="flex items-center">
+          <Clock className="w-4 h-4 mr-1" />
+          {new Date(tool.lastUpdate).toLocaleDateString()}
+        </div>
+      </div>
+      <div className="flex items-center text-sm text-muted-foreground">
+        <CheckCircle2 className="w-4 h-4 mr-1 text-green-500" />
+        Ready to install
+      </div>
+    </div>
+  </Card>
+));
+
+// Main Component
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -93,7 +230,7 @@ export default function Index() {
         tool.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const startInstallation = () => {
+  const startInstallation = useCallback(() => {
     setIsInstalling(true);
     setInstallProgress(0);
     
@@ -111,11 +248,11 @@ export default function Index() {
         return prev + 2;
       });
     }, 50);
-  };
+  }, [toast]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "/" && e.metaKey) {
+      if ((e.key === "/" || e.key === "k") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         document.getElementById("search-input")?.focus();
       }
@@ -147,35 +284,54 @@ export default function Index() {
           </p>
 
           <div className="flex gap-4">
-            <Button size="lg" onClick={startInstallation} disabled={isInstalling}>
-              {isInstalling ? (
-                <>
-                  Installing...
-                  <Progress value={installProgress} className="w-20 ml-2" />
-                </>
-              ) : (
-                <>
-                  Quick Install
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </>
-              )}
-            </Button>
+            <InstallButton
+              isInstalling={isInstalling}
+              progress={installProgress}
+              onClick={startInstallation}
+            />
             <Button size="lg" variant="outline">
               View Documentation
             </Button>
           </div>
         </div>
 
+        {/* Statistics Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <Statistic
+            icon={<Users className="w-5 h-5" />}
+            label="Active Developers"
+            value="100,000+"
+          />
+          <Statistic
+            icon={<Download className="w-5 h-5" />}
+            label="Total Downloads"
+            value="1M+"
+          />
+          <Statistic
+            icon={<Activity className="w-5 h-5" />}
+            label="Daily Active Users"
+            value="50,000+"
+          />
+        </div>
+
+        {/* Features Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+          <FeatureHighlight
+            icon={<Zap className="w-5 h-5" />}
+            title="Lightning Fast"
+            description="Optimized performance for instant feedback and real-time updates"
+          />
+          <FeatureHighlight
+            icon={<Star className="w-5 h-5" />}
+            title="AI-Powered"
+            description="Smart suggestions and automated workflows powered by advanced AI"
+          />
+        </div>
+
         {/* Tools Section */}
         <div className="space-y-8">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <Input
-              id="search-input"
-              placeholder="Search tools... (⌘ + /)"
-              className="max-w-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
             
             <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
               <TabsList>
@@ -187,28 +343,13 @@ export default function Index() {
             </Tabs>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredTools.map((tool) => (
-              <Card key={tool.id} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    {tool.icon}
-                  </div>
-                  <Badge variant="secondary">
-                    {tool.popularity}% Popular
-                  </Badge>
-                </div>
-                
-                <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
-                <p className="text-muted-foreground mb-4">{tool.description}</p>
-                
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <CheckCircle2 className="w-4 h-4 mr-1 text-green-500" />
-                  Ready to install
-                </div>
-              </Card>
-            ))}
-          </div>
+          <ScrollArea className="h-[600px] rounded-md border p-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredTools.map((tool) => (
+                <ToolCard key={tool.id} tool={tool} />
+              ))}
+            </div>
+          </ScrollArea>
         </div>
       </div>
     </div>
