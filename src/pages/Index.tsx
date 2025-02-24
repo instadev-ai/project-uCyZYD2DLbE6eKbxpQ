@@ -1,295 +1,216 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Code2, Command, Cpu, GitFork, Terminal } from "lucide-react";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Rocket,
+  Code2,
+  Braces,
+  Terminal,
+  Cpu,
+  GitBranch,
+  Boxes,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+} from "lucide-react";
+import { useState, useEffect } from "react";
 
-interface FeatureMetrics {
-  views: number;
-  interactions: number;
-  loadTime: number;
+interface Tool {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  category: string;
+  popularity: number;
 }
 
-const Index = () => {
-  // State management
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [activeFeature, setActiveFeature] = useState<string>("");
-  const [metrics, setMetrics] = useState<FeatureMetrics>({
-    views: 0,
-    interactions: 0,
-    loadTime: 0,
-  });
-  const [systemStatus, setSystemStatus] = useState<"online" | "offline" | "degraded">("offline");
+const tools: Tool[] = [
+  {
+    id: "terminal",
+    name: "Smart Terminal",
+    description: "AI-powered command line interface with predictive suggestions",
+    icon: <Terminal className="w-6 h-6" />,
+    category: "core",
+    popularity: 98,
+  },
+  {
+    id: "debugger",
+    name: "Visual Debugger",
+    description: "Time-travel debugging with state inspection",
+    icon: <Boxes className="w-6 h-6" />,
+    category: "debug",
+    popularity: 92,
+  },
+  {
+    id: "git",
+    name: "Git Control",
+    description: "Advanced version control with merge visualization",
+    icon: <GitBranch className="w-6 h-6" />,
+    category: "core",
+    popularity: 95,
+  },
+  {
+    id: "compiler",
+    name: "Smart Compiler",
+    description: "Intelligent code compilation with error prediction",
+    icon: <Cpu className="w-6 h-6" />,
+    category: "build",
+    popularity: 88,
+  },
+  {
+    id: "syntax",
+    name: "Syntax Analyzer",
+    description: "Real-time code analysis and optimization suggestions",
+    icon: <Braces className="w-6 h-6" />,
+    category: "debug",
+    popularity: 90,
+  },
+  {
+    id: "ai",
+    name: "AI Assistant",
+    description: "Context-aware code completion and refactoring",
+    icon: <Sparkles className="w-6 h-6" />,
+    category: "build",
+    popularity: 94,
+  },
+];
 
+export default function Index() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [installProgress, setInstallProgress] = useState(0);
+  const [isInstalling, setIsInstalling] = useState(false);
   const { toast } = useToast();
 
-  // Simulated API call
-  const fetchSystemStatus = useCallback(async () => {
-    try {
-      // Simulate API latency
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSystemStatus("online");
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch system status:", error);
-      setSystemStatus("degraded");
-    }
-  }, []);
+  const filteredTools = tools.filter(
+    (tool) =>
+      (activeCategory === "all" || tool.category === activeCategory) &&
+      (tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tool.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
-  // Memoized calculations
-  const performanceScore = useMemo(() => {
-    return Math.round((metrics.loadTime * 0.4 + metrics.interactions * 0.6) * 100) / 100;
-  }, [metrics.loadTime, metrics.interactions]);
-
-  // Feature interaction handler
-  const handleFeatureInteraction = useCallback((featureId: string) => {
-    setActiveFeature(featureId);
-    setMetrics(prev => ({
-      ...prev,
-      interactions: prev.interactions + 1,
-    }));
+  const startInstallation = () => {
+    setIsInstalling(true);
+    setInstallProgress(0);
     
-    toast({
-      title: "Feature Activated",
-      description: `You've activated ${featureId}. Exploring more features increases your developer score!`,
-    });
-  }, [toast]);
-
-  // Lifecycle effects
-  useEffect(() => {
-    fetchSystemStatus();
-    
-    const cleanup = () => {
-      setSystemStatus("offline");
-      console.log("Cleaning up system resources...");
-    };
-
-    return cleanup;
-  }, [fetchSystemStatus]);
-
-  useEffect(() => {
     const interval = setInterval(() => {
-      setMetrics(prev => ({
-        ...prev,
-        loadTime: prev.loadTime + 0.1,
-      }));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
+      setInstallProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsInstalling(false);
+          toast({
+            title: "Installation Complete",
+            description: "All developer tools have been successfully installed!",
+          });
+          return 100;
+        }
+        return prev + 2;
+      });
+    }, 50);
+  };
 
   useEffect(() => {
-    if (performanceScore > 10) {
-      toast({
-        title: "Achievement Unlocked!",
-        description: "You've reached a performance score of 10+. Keep exploring!",
-      });
-    }
-  }, [performanceScore, toast]);
-
-  // Render helpers
-  const renderSystemStatus = useMemo(() => {
-    const statusColors = {
-      online: "text-green-500",
-      offline: "text-red-500",
-      degraded: "text-yellow-500",
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === "/" && e.metaKey) {
+        e.preventDefault();
+        document.getElementById("search-input")?.focus();
+      }
     };
 
-    return (
-      <span className={statusColors[systemStatus]}>
-        System Status: {systemStatus}
-      </span>
-    );
-  }, [systemStatus]);
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading system resources...</div>;
-  }
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      {/* Hero Section */}
-      <div className="container px-4 py-24 mx-auto">
-        <div className="flex flex-col items-center text-center space-y-8">
-          <div className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-muted border animate-fade-in">
-            <span className="text-muted-foreground">Introducing DevTools 2.0</span>
-            {renderSystemStatus}
-          </div>
+      <div className="container px-4 py-16 mx-auto">
+        {/* Hero Section */}
+        <div className="flex flex-col items-center text-center mb-16 space-y-6">
+          <Badge variant="outline" className="px-4 py-1">
+            <Rocket className="w-4 h-4 mr-2" />
+            Developer Tools v2.0
+          </Badge>
           
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent animate-fade-in [animation-delay:150ms]">
-            Developer Tools<br />for the Modern Web
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
+            The Future of{" "}
+            <span className="bg-gradient-to-r from-blue-600 to-violet-600 text-transparent bg-clip-text">
+              Development
+            </span>
           </h1>
           
-          <p className="max-w-[42rem] leading-normal text-muted-foreground sm:text-xl sm:leading-8 animate-fade-in [animation-delay:300ms]">
-            Powerful development environment with everything you need to build, debug and deploy your next big project. Built for developers, by developers.
+          <p className="text-xl text-muted-foreground max-w-[600px]">
+            Experience the next generation of development tools powered by AI and real-time collaboration.
           </p>
-          
-          <div className="flex flex-wrap justify-center gap-4 animate-fade-in [animation-delay:450ms]">
-            <Button 
-              size="lg" 
-              className="h-12 px-6"
-              onClick={() => handleFeatureInteraction("get_started")}
-            >
-              Get Started
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="h-12 px-6"
-              onClick={() => handleFeatureInteraction("github")}
-            >
-              View on GitHub
-              <GitFork className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
 
-          <div className="text-sm text-muted-foreground">
-            Performance Score: {performanceScore} | Interactions: {metrics.interactions}
+          <div className="flex gap-4">
+            <Button size="lg" onClick={startInstallation} disabled={isInstalling}>
+              {isInstalling ? (
+                <>
+                  Installing...
+                  <Progress value={installProgress} className="w-20 ml-2" />
+                </>
+              ) : (
+                <>
+                  Quick Install
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </Button>
+            <Button size="lg" variant="outline">
+              View Documentation
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Features Grid */}
-      <div className="container px-4 pb-24 mx-auto">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          <Card 
-            className={`p-6 transition-all hover:shadow-lg ${activeFeature === "command" ? "ring-2 ring-primary" : ""}`}
-            onClick={() => handleFeatureInteraction("command")}
-          >
-            <Command className="w-12 h-12 mb-4 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Command Palette</h3>
-            <p className="text-muted-foreground">
-              Quick access to all tools and commands with a powerful search interface.
-            </p>
-          </Card>
+        {/* Tools Section */}
+        <div className="space-y-8">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <Input
+              id="search-input"
+              placeholder="Search tools... (⌘ + /)"
+              className="max-w-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            
+            <Tabs defaultValue="all" value={activeCategory} onValueChange={setActiveCategory}>
+              <TabsList>
+                <TabsTrigger value="all">All Tools</TabsTrigger>
+                <TabsTrigger value="core">Core</TabsTrigger>
+                <TabsTrigger value="debug">Debug</TabsTrigger>
+                <TabsTrigger value="build">Build</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
 
-          <Card 
-            className={`p-6 transition-all hover:shadow-lg ${activeFeature === "terminal" ? "ring-2 ring-primary" : ""}`}
-            onClick={() => handleFeatureInteraction("terminal")}
-          >
-            <Terminal className="w-12 h-12 mb-4 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Integrated Terminal</h3>
-            <p className="text-muted-foreground">
-              Full-featured terminal with multi-tab support and command history.
-            </p>
-          </Card>
-
-          <Card 
-            className={`p-6 transition-all hover:shadow-lg ${activeFeature === "code" ? "ring-2 ring-primary" : ""}`}
-            onClick={() => handleFeatureInteraction("code")}
-          >
-            <Code2 className="w-12 h-12 mb-4 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Code Intelligence</h3>
-            <p className="text-muted-foreground">
-              Smart code completion and insights powered by AI.
-            </p>
-          </Card>
-
-          <Card 
-            className={`p-6 transition-all hover:shadow-lg ${activeFeature === "performance" ? "ring-2 ring-primary" : ""}`}
-            onClick={() => handleFeatureInteraction("performance")}
-          >
-            <Cpu className="w-12 h-12 mb-4 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Performance Tools</h3>
-            <p className="text-muted-foreground">
-              Advanced profiling and debugging tools to optimize your code.
-            </p>
-          </Card>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredTools.map((tool) => (
+              <Card key={tool.id} className="p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    {tool.icon}
+                  </div>
+                  <Badge variant="secondary">
+                    {tool.popularity}% Popular
+                  </Badge>
+                </div>
+                
+                <h3 className="text-xl font-semibold mb-2">{tool.name}</h3>
+                <p className="text-muted-foreground mb-4">{tool.description}</p>
+                
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <CheckCircle2 className="w-4 h-4 mr-1 text-green-500" />
+                  Ready to install
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default Index;
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ArrowRight, Code2, Command, Cpu, GitFork, Terminal } from "lucide-react";
-
-const Index = () => {
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      {/* Hero Section */}
-      <div className="container px-4 py-24 mx-auto">
-        <div className="flex flex-col items-center text-center space-y-8">
-          <div className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-muted border animate-fade-in">
-            <span className="text-muted-foreground">Introducing DevTools 2.0</span>
-          </div>
-          
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent animate-fade-in [animation-delay:150ms]">
-            Developer Tools<br />for the Modern Web
-          </h1>
-          
-          <p className="max-w-[42rem] leading-normal text-muted-foreground sm:text-xl sm:leading-8 animate-fade-in [animation-delay:300ms]">
-            Powerful development environment with everything you need to build, debug and deploy your next big project. Built for developers, by developers.
-          </p>
-          
-          <div className="flex flex-wrap justify-center gap-4 animate-fade-in [animation-delay:450ms]">
-            <Button size="lg" className="h-12 px-6">
-              Get Started
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-            <Button size="lg" variant="outline" className="h-12 px-6">
-              View on GitHub
-              <GitFork className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div className="container px-4 pb-24 mx-auto">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="p-6 transition-all hover:shadow-lg">
-            <Command className="w-12 h-12 mb-4 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Command Palette</h3>
-            <p className="text-muted-foreground">
-              Quick access to all tools and commands with a powerful search interface.
-            </p>
-          </Card>
-
-          <Card className="p-6 transition-all hover:shadow-lg">
-            <Terminal className="w-12 h-12 mb-4 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Integrated Terminal</h3>
-            <p className="text-muted-foreground">
-              Full-featured terminal with multi-tab support and command history.
-            </p>
-          </Card>
-
-          <Card className="p-6 transition-all hover:shadow-lg">
-            <Code2 className="w-12 h-12 mb-4 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Code Intelligence</h3>
-            <p className="text-muted-foreground">
-              Smart code completion and insights powered by AI.
-            </p>
-          </Card>
-
-          <Card className="p-6 transition-all hover:shadow-lg">
-            <Cpu className="w-12 h-12 mb-4 text-primary" />
-            <h3 className="mb-2 text-xl font-semibold">Performance Tools</h3>
-            <p className="text-muted-foreground">
-              Advanced profiling and debugging tools to optimize your code.
-            </p>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Index;
-// Update this page (the content is just a fallback if you fail to update the page)
-
-const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
-};
-
-export default Index;
+}
